@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼豆图纸生成器 - Perler Bead Pattern Generator</title>
+<style>
+:root {
+  --bg: #f5f0eb;
+  --card-bg: #ffffff;
+  --text: #2d2a26;
+  --text-secondary: #6b6560;
+  --accent: #7c5cbf;
+  --accent-hover: #6a4bab;
+  --accent-light: #f3effb;
+  --border: #e5e0db;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow: 0 4px 16px rgba(0,0,0,0.08);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --danger: #e0556a;
+  --success: #3ca374;
+}
+.dark {
+  --bg: #1e1d1b;
+  --card-bg: #2a2825;
+  --text: #e8e4df;
+  --text-secondary: #a09b95;
+  --accent: #9b7ce8;
+  --accent-hover: #b092f5;
+  --accent-light: #2d2840;
+  --border: #3d3a35;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.25);
+  --shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  user-select: none;
+}
+.header {
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header h1 {
+  font-size: 19px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #7c5cbf, #e0556a, #f0a050);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header-actions { display: flex; gap: 8px; }
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 16px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.toolbar-group { display: flex; gap: 2px; }
+.toolbar-divider { width: 1px; height: 24px; background: var(--border); margin: 0 6px; }
+.tool-btn {
+  width: 34px; height: 34px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  color: var(--text-secondary);
+  position: relative;
+}
+.tool-btn:hover { background: #f5f3f0; color: var(--text); }
+.tool-btn.active { background: var(--accent-light); color: var(--accent); }
+.tool-btn .tooltip { display: none; position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #2d2a26; color: #fff; padding: 3px 8px; border-radius: 6px; font-size: 10px; white-space: nowrap; pointer-events: none; z-index: 999; }
+.tool-btn:hover .tooltip { display: block; }
+
+/* Main */
+.main-container {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  height: calc(100vh - 54px - 44px);
+}
+
+.panel {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  overflow-y: auto;
+}
+.panel-title {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text-secondary);
+  margin-bottom: 14px; padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent-light);
+}
+.panel-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.panel-section-title { font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+/* Left Panel */
+.left-panel { width: 270px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius-sm);
+  padding: 18px 14px; text-align: center; cursor: pointer;
+  transition: all 0.2s; background: #fafaf8;
+}
+.upload-zone:hover { border-color: var(--accent); background: var(--accent-light); }
+.upload-zone.has-image { border-style: solid; border-color: var(--success); background: #f6fbf8; }
+.upload-icon { font-size: 30px; margin-bottom: 6px; }
+.upload-text { font-size: 12px; color: var(--text-secondary); }
+.upload-hint { font-size: 10px; color: #aaa; margin-top: 3px; }
+
+.control-group { margin-bottom: 10px; }
+.control-label { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+.control-value { font-size: 11px; color: var(--accent); font-weight: 700; background: var(--accent-light); padding: 1px 7px; border-radius: 10px; }
+
+input[type="range"] {
+  -webkit-appearance: none; width: 100%; height: 5px;
+  border-radius: 3px; background: #e8e4df; outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+  border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+select {
+  width: 100%; padding: 7px 10px; border-radius: 6px;
+  border: 1px solid var(--border); font-size: 12px;
+  background: #fafaf8; color: var(--text); cursor: pointer;
+  font-family: inherit;
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 8px 14px; border-radius: var(--radius-sm); border: none;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap; font-family: inherit;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.btn-outline { background: #fff; color: var(--accent); border: 2px solid var(--accent); }
+.btn-outline:hover { background: var(--accent-light); }
+.btn-sm { padding: 5px 8px; font-size: 10px; }
+.btn-block { width: 100%; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-group { display: flex; gap: 4px; }
+.btn-group .btn { flex: 1; }
+
+.toggle-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-secondary); margin-bottom: 5px; }
+.toggle-switch { position: relative; width: 38px; height: 20px; flex-shrink: 0; }
+.toggle-switch input { display: none; }
+.toggle-slider { position: absolute; inset: 0; background: #d5d0cb; border-radius: 10px; cursor: pointer; transition: 0.25s; }
+.toggle-slider::before { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: 0.25s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+/* Center */
+.center-panel { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; min-width: 0; overflow: hidden; }
+.canvas-wrapper { flex: 1; width: 100%; height: 100%; overflow: auto; display: flex; align-items: center; justify-content: center; cursor: crosshair; }
+.canvas-wrapper.panning { cursor: grab; }
+.canvas-wrapper.panning:active { cursor: grabbing; }
+#patternCanvas { image-rendering: auto; border-radius: 4px; }
+.placeholder { text-align: center; color: #c5bfb8; }
+.placeholder-icon { font-size: 64px; margin-bottom: 10px; }
+.placeholder-text { font-size: 14px; line-height: 1.6; }
+
+.zoom-bar {
+  position: absolute; bottom: 14px; right: 14px;
+  display: flex; gap: 2px; background: var(--card-bg);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow); padding: 3px;
+}
+.zoom-bar .btn { width: 30px; height: 30px; padding: 0; border-radius: 5px; font-size: 15px; font-weight: 700; }
+.zoom-label { display: flex; align-items: center; justify-content: center; min-width: 44px; font-size: 10px; color: var(--text-secondary); font-weight: 600; }
+
+/* Right Panel */
+.right-panel { width: 216px; flex-shrink: 0; display: flex; flex-direction: column; }
+/* Color group filter */
+.color-filter { display: flex; gap: 2px; margin-bottom: 10px; flex-wrap: wrap; }
+.color-filter button {
+  width: 22px; height: 20px; border: none; border-radius: 4px;
+  background: #f0ece6; cursor: pointer; font-size: 9px; font-weight: 700;
+  color: var(--text-secondary); transition: all 0.15s; padding: 0;
+  font-family: inherit;
+}
+.color-filter button:hover { background: #e0dcd6; }
+.color-filter button.active { background: var(--accent); color: #fff; }
+.color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; flex: 1; overflow-y: auto; align-content: start; }
+.color-group-label {
+  grid-column: 1 / -1; font-size: 9px; font-weight: 700;
+  color: var(--text-secondary); padding: 4px 0 0 2px;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.color-swatch {
+  aspect-ratio: 1; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: all 0.15s; position: relative;
+  box-shadow: inset 0 -2px 3px rgba(0,0,0,0.15), inset 0 2px 3px rgba(255,255,255,0.3);
+}
+.color-swatch:hover { transform: scale(1.25); box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 2; }
+.color-swatch.selected { border-color: #2d2a26; box-shadow: 0 0 0 2.5px #fff, 0 0 0 4.5px #2d2a26; transform: scale(1.15); z-index: 3; }
+.color-swatch .tt { display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #2d2a26; color: #fff; padding: 3px 7px; border-radius: 5px; font-size: 9px; white-space: nowrap; pointer-events: none; z-index: 10; }
+.color-swatch:hover .tt { display: block; }
+
+.active-color-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #fafaf8; border-radius: var(--radius-sm); margin-bottom: 10px; }
+.active-color-dot { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2), inset 0 -2px 3px rgba(0,0,0,0.15); flex-shrink: 0; }
+.active-color-info { font-size: 10px; line-height: 1.4; color: var(--text-secondary); }
+.active-color-info strong { display: block; font-size: 11px; color: var(--text); }
+
+.stats-bar { display: flex; gap: 8px; padding: 8px 10px; background: #fafaf8; border-radius: var(--radius-sm); font-size: 10px; color: var(--text-secondary); margin-top: 10px; }
+.stat-item { text-align: center; flex: 1; }
+.stat-value { font-size: 15px; font-weight: 700; color: var(--accent); }
+
+/* Coord tooltip */
+.coord-tip {
+  position: fixed; background: rgba(45,42,38,0.88); color: #fff;
+  padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  pointer-events: none; z-index: 200; display: none; white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
+/* Crop modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 300; display: flex; align-items: center; justify-content: center;
+}
+.modal-content {
+  background: var(--card-bg); border-radius: var(--radius);
+  padding: 20px; max-width: 90vw; max-height: 85vh;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.modal-content canvas { max-width: 80vw; max-height: 60vh; cursor: crosshair; border: 1px solid var(--border); border-radius: 4px; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: #2d2a26; color: #fff; padding: 10px 20px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; z-index: 999; opacity: 0;
+  transition: opacity 0.3s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d5d0cb; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #b5b0ab; }
+
+@media (max-width: 900px) {
+  .main-container { flex-direction: column; height: auto; padding: 8px; }
+  .left-panel { width: 100%; }
+  .right-panel { width: 100%; max-height: 180px; }
+  .color-grid { grid-template-columns: repeat(auto-fill, minmax(30px, 1fr)); }
+  .center-panel { min-height: 400px; }
+  .header h1 { font-size: 15px; }
+  .toolbar { gap: 1px; padding: 4px 8px; }
+  .toolbar-divider { margin: 0 2px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎨 拼豆图纸生成器</h1>
+  <div class="header-actions">
+    <button class="btn btn-sm" id="themeToggle" onclick="toggleTheme()" style="background:var(--accent-light);color:var(--text-secondary)" title="切换深色/浅色模式">🌙</button>
+    <button class="btn btn-outline btn-sm" onclick="resetAll()">重新开始</button>
+    <button class="btn btn-sm" onclick="toggleAbout()" style="background:#f0ece6;color:var(--text-secondary)">?</button>
+  </div>
+</div>
+
+<div class="toolbar" id="toolbar">
+  <div class="toolbar-group">
+    <button class="tool-btn active" data-tool="brush" onclick="setTool('brush')" title="画笔 (B)">
+      🖌️<span class="tooltip">画笔 B</span>
+    </button>
+    <button class="tool-btn" data-tool="eraser" onclick="setTool('eraser')" title="橡皮 (E)">
+      🧹<span class="tooltip">橡皮 E</span>
+    </button>
+    <button class="tool-btn" data-tool="fill" onclick="setTool('fill')" title="填充 (G)">
+      🪣<span class="tooltip">填充 G</span>
+    </button>
+    <button class="tool-btn" data-tool="picker" onclick="setTool('picker')" title="吸色管 (I)">
+      💉<span class="tooltip">吸色管 I</span>
+    </button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <div class="toolbar-group">
+    <button class="tool-btn" onclick="undo()" title="撤销 (Ctrl+Z)">↩️<span class="tooltip">撤销 Ctrl+Z</span></button>
+    <button class="tool-btn" onclick="redo()" title="重做 (Ctrl+Y)">↪️<span class="tooltip">重做 Ctrl+Y</span></button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <div class="toolbar-group">
+    <button class="tool-btn" onclick="flipH()" title="水平翻转">↔️<span class="tooltip">水平翻转</span></button>
+    <button class="tool-btn" onclick="flipV()" title="垂直翻转">↕️<span class="tooltip">垂直翻转</span></button>
+    <button class="tool-btn" onclick="openCrop()" title="裁切">✂️<span class="tooltip">裁切</span></button>
+  </div>
+  <span class="toolbar-divider"></span>
+  <div class="toolbar-group">
+    <div class="toggle-row" style="margin:0;gap:5px">
+      <label class="toggle-switch"><input type="checkbox" id="pixelMode" onchange="togglePixelMode()"><span class="toggle-slider"></span></label>
+      <span style="font-size:10px">像素模式</span>
+    </div>
+  </div>
+  <div class="toolbar-group">
+    <div class="toggle-row" style="margin:0;gap:5px">
+      <label class="toggle-switch"><input type="checkbox" id="previewMode" onchange="togglePreviewMode()"><span class="toggle-slider"></span></label>
+      <span style="font-size:10px">原图预览</span>
+    </div>
+  </div>
+</div>
+
+<div class="main-container">
+  <!-- Left Panel -->
+  <div class="panel left-panel">
+    <div class="panel-title">📷 图片设置</div>
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">🖼️</div>
+      <div class="upload-text">点击或拖拽上传图片</div>
+      <div class="upload-hint">支持 JPG / PNG / WebP</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+
+    <div class="control-group">
+      <div class="control-label"><span>拼豆品牌</span></div>
+      <select id="brandSelect" onchange="onBrandChange()">
+        <option value="artkalFull" selected>Artkal 完整色卡</option>
+        <option value="perler">Perler 标准</option>
+        <option value="hama">Hama 欧洲</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <div class="control-label"><span>宽度</span><span class="control-value" id="widthVal">30</span></div>
+      <input type="range" id="gridWidth" min="5" max="120" value="30" oninput="onGridSizeChange()">
+    </div>
+    <div class="control-group">
+      <div class="control-label"><span>高度</span><span class="control-value" id="heightVal">30</span></div>
+      <input type="range" id="gridHeight" min="5" max="120" value="30" oninput="onGridSizeChange()">
+    </div>
+    <div class="toggle-row">
+      <label class="toggle-switch"><input type="checkbox" id="lockAspect" checked onchange="onGridSizeChange()"><span class="toggle-slider"></span></label>
+      <span>锁定宽高比</span>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">🎚️ 图像调整</div>
+      <div class="control-group">
+        <div class="control-label"><span>亮度</span><span class="control-value" id="brightVal">0</span></div>
+        <input type="range" id="brightness" min="-100" max="100" value="0" oninput="onFilterChange()">
+      </div>
+      <div class="control-group">
+        <div class="control-label"><span>对比度</span><span class="control-value" id="contrastVal">0</span></div>
+        <input type="range" id="contrast" min="-100" max="100" value="0" oninput="onFilterChange()">
+      </div>
+      <div class="control-group">
+        <div class="control-label"><span>饱和度</span><span class="control-value" id="satVal">100%</span></div>
+        <input type="range" id="saturation" min="0" max="200" value="100" oninput="onFilterChange()">
+      </div>
+      <div class="control-group">
+        <div class="control-label"><span>阈值</span><span class="control-value" id="thresholdVal">0</span></div>
+        <input type="range" id="threshold" min="0" max="100" value="0" oninput="onFilterChange()">
+      </div>
+      <div class="control-group">
+        <div class="control-label"><span>锐化</span><span class="control-value" id="sharpenVal">0</span></div>
+        <input type="range" id="sharpen" min="0" max="100" value="0" oninput="onFilterChange()">
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">📥 导出</div>
+      <div class="btn-group" style="margin-bottom:6px">
+        <button class="btn btn-sm" id="exportBeadBtn" style="background:var(--accent);color:#fff" onclick="setExportStyle('bead')">拼豆模式</button>
+        <button class="btn btn-sm" id="exportPixelBtn" style="background:#f0ece6;color:var(--text-secondary)" onclick="setExportStyle('pixel')">像素模式</button>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="exportPNG()">导出 PNG 图纸</button>
+      <button class="btn btn-outline btn-block" style="margin-top:4px" onclick="previewExport()">🔍 导出预览</button>
+      <div class="btn-group" style="margin-top:5px">
+        <button class="btn btn-outline btn-sm" onclick="exportSVG()">SVG</button>
+        <button class="btn btn-outline btn-sm" onclick="exportJSON()">JSON</button>
+        <button class="btn btn-outline btn-sm" onclick="exportCopyText()">复制文本</button>
+      </div>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-item"><div class="stat-value" id="statColors">-</div><div>使用颜色数</div></div>
+      <div class="stat-item"><div class="stat-value" id="statBeads">-</div><div>总拼豆数</div></div>
+    </div>
+  </div>
+
+  <!-- Center -->
+  <div class="panel center-panel" id="centerPanel">
+    <div class="canvas-wrapper" id="canvasWrapper">
+      <canvas id="patternCanvas"></canvas>
+      <div class="placeholder" id="placeholder">
+        <div class="placeholder-icon">🧩</div>
+        <div class="placeholder-text">上传图片开始创作你的拼豆图纸吧！<br><small>拖拽图片到此处 ｜ 支持 JPG/PNG/WebP</small></div>
+      </div>
+    </div>
+    <div class="zoom-bar">
+      <button class="btn btn-outline btn-sm" onclick="zoomOut()">−</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <button class="btn btn-outline btn-sm" onclick="zoomIn()">+</button>
+      <button class="btn btn-outline btn-sm" onclick="zoomFit()">⊡</button>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="panel right-panel">
+    <div class="panel-title">🎨 色板</div>
+    <div class="active-color-bar">
+      <div class="active-color-dot" id="activeColorDot"></div>
+      <div class="active-color-info">
+        <strong id="activeColorName">--</strong>
+        <span id="activeColorHex">选择颜色</span>
+      </div>
+    </div>
+    <div class="color-filter" id="colorFilter"></div>
+    <div class="color-grid" id="colorGrid"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="coord-tip" id="coordTip"></div>
+<div id="modalContainer"></div>
+
+<script>
+// ============ COLOR PALETTES ============
+// Artkal full color palette organized by letter groups
+const artkalGroupLabels = {A:'黄色系 A',B:'绿色系 B',C:'蓝色系 C',D:'紫色系 D',E:'粉色系 E',F:'红色系 F',G:'棕色系 G',H:'中性色 H',M:'莫兰迪 M'};
+const palettes = {
+  artkalFull: [
+    // A系列 - 黄/橙/暖色系
+    {name:'奶黄',hex:'#faf5cd',code:'A1'},{name:'象牙黄',hex:'#fcfed6',code:'A2'},{name:'荧光黄绿',hex:'#fcff92',code:'A3'},
+    {name:'向日葵',hex:'#f7ec5c',code:'A4'},{name:'明黄',hex:'#f0d83a',code:'A5'},{name:'橘黄',hex:'#fda951',code:'A6'},
+    {name:'橘色',hex:'#fa8c4f',code:'A7'},{name:'香蕉黄',hex:'#fbda4d',code:'A8'},{name:'杏黄',hex:'#f79d5f',code:'A9'},
+    {name:'橙',hex:'#f47e38',code:'A10'},{name:'香草',hex:'#fedb99',code:'A11'},{name:'三文鱼',hex:'#fda276',code:'A12'},
+    {name:'金盏',hex:'#fec667',code:'A13'},{name:'珊瑚红',hex:'#f75842',code:'A14'},{name:'柠檬',hex:'#fbf65e',code:'A15'},
+    {name:'柔黄',hex:'#feff97',code:'A16'},{name:'奶油',hex:'#fde173',code:'A17'},{name:'杏',hex:'#fcbf80',code:'A18'},
+    {name:'珊瑚粉',hex:'#fd7e77',code:'A19'},{name:'芥末黄',hex:'#f9d666',code:'A20'},{name:'蜂蜜',hex:'#fae393',code:'A21'},
+    {name:'嫩绿黄',hex:'#edf878',code:'A22'},{name:'暖沙',hex:'#e4c8ba',code:'A23'},{name:'浅黄绿',hex:'#f3f6a9',code:'A24'},
+    {name:'鹅黄',hex:'#fdf785',code:'A25'},{name:'金黄',hex:'#ffc734',code:'A26'},
+    // B系列 - 绿色系
+    {name:'荧光绿',hex:'#dff13b',code:'B1'},{name:'荧光翠绿',hex:'#64f343',code:'B2'},{name:'嫩绿',hex:'#a1f586',code:'B3'},
+    {name:'青草绿',hex:'#5fdf34',code:'B4'},{name:'翠绿',hex:'#39e158',code:'B5'},{name:'碧绿',hex:'#64e0a4',code:'B6'},
+    {name:'玉绿',hex:'#3eae7c',code:'B7'},{name:'翡翠绿',hex:'#1d9b54',code:'B8'},{name:'墨绿',hex:'#2a5037',code:'B9'},
+    {name:'薄荷绿',hex:'#9ad1ba',code:'B10'},{name:'军绿',hex:'#627032',code:'B11'},{name:'深翠绿',hex:'#1a6e3d',code:'B12'},
+    {name:'苹果绿',hex:'#c8e87d',code:'B13'},{name:'亮绿',hex:'#abe84f',code:'B14'},{name:'森林绿',hex:'#305335',code:'B15'},
+    {name:'浅草绿',hex:'#c0ed9c',code:'B16'},{name:'橄榄绿',hex:'#9eb33e',code:'B17'},{name:'亮黄绿',hex:'#e6ed4f',code:'B18'},
+    {name:'海绿',hex:'#26b78e',code:'B19'},{name:'淡绿',hex:'#cbeccf',code:'B20'},{name:'松石绿',hex:'#18616a',code:'B21'},
+    {name:'暗松绿',hex:'#0a4241',code:'B22'},{name:'深橄榄',hex:'#343b1a',code:'B23'},{name:'柔嫩绿',hex:'#e8faa6',code:'B24'},
+    {name:'灰绿',hex:'#4e846d',code:'B25'},{name:'苔绿',hex:'#907c35',code:'B26'},{name:'粉绿',hex:'#d0e0af',code:'B27'},
+    {name:'水绿',hex:'#9ee5bb',code:'B28'},{name:'芽绿',hex:'#c6df5f',code:'B29'},{name:'极浅绿',hex:'#e3fbb1',code:'B30'},
+    {name:'抹茶绿',hex:'#b4e691',code:'B31'},{name:'草绿',hex:'#92ad60',code:'B32'},
+    // C系列 - 蓝色系
+    {name:'极浅蓝',hex:'#f0fee4',code:'C1'},{name:'冰蓝',hex:'#abf8fe',code:'C2'},{name:'浅天蓝',hex:'#a2e0f7',code:'C3'},
+    {name:'亮蓝',hex:'#44cdfb',code:'C4'},{name:'天蓝',hex:'#06aadf',code:'C5'},{name:'湖蓝',hex:'#54a7e9',code:'C6'},
+    {name:'钴蓝',hex:'#3977ca',code:'C7'},{name:'宝蓝',hex:'#0f52bd',code:'C8'},{name:'群青',hex:'#3349c3',code:'C9'},
+    {name:'浅湖蓝',hex:'#3cbce3',code:'C10'},{name:'青',hex:'#2aded3',code:'C11'},{name:'深蓝灰',hex:'#1e334e',code:'C12'},
+    {name:'婴儿蓝',hex:'#cde7fe',code:'C13'},{name:'浅青',hex:'#d5fcf7',code:'C14'},{name:'蓝绿',hex:'#21c5c4',code:'C15'},
+    {name:'藏蓝',hex:'#1858a2',code:'C16'},{name:'亮青',hex:'#02d1f3',code:'C17'},{name:'暗蓝',hex:'#213244',code:'C18'},
+    {name:'孔雀蓝',hex:'#18869d',code:'C19'},{name:'深海蓝',hex:'#1a70a9',code:'C20'},{name:'粉蓝',hex:'#bcddfc',code:'C21'},
+    {name:'灰蓝',hex:'#6bb1bb',code:'C22'},{name:'浅粉蓝',hex:'#c8e2fd',code:'C23'},{name:'中蓝',hex:'#7ec5f9',code:'C24'},
+    {name:'薄荷青',hex:'#a9e8e0',code:'C25'},{name:'石蓝',hex:'#42adcf',code:'C26'},{name:'淡紫蓝',hex:'#d0def9',code:'C27'},
+    {name:'雾蓝',hex:'#bdcee8',code:'C28'},{name:'深紫蓝',hex:'#364a89',code:'C29'},
+    // D系列 - 紫色系
+    {name:'浅紫蓝',hex:'#acb7ef',code:'D1'},{name:'淡紫',hex:'#868dd3',code:'D2'},{name:'紫罗兰',hex:'#3554af',code:'D3'},
+    {name:'深紫蓝',hex:'#162d7b',code:'D4'},{name:'紫红',hex:'#b34ec6',code:'D5'},{name:'薰衣草',hex:'#b37bdc',code:'D6'},
+    {name:'紫',hex:'#8758a9',code:'D7'},{name:'浅薰衣草',hex:'#e3d2fe',code:'D8'},{name:'淡丁香',hex:'#d5b9f4',code:'D9'},
+    {name:'暗紫',hex:'#301a49',code:'D10'},{name:'灰紫',hex:'#beb9e2',code:'D11'},{name:'兰花紫',hex:'#dc99ce',code:'D12'},
+    {name:'品红紫',hex:'#b5038d',code:'D13'},{name:'紫水晶',hex:'#862993',code:'D14'},{name:'午夜紫',hex:'#2f1f8c',code:'D15'},
+    {name:'极淡紫',hex:'#e2e4f0',code:'D16'},{name:'鸢尾紫',hex:'#c7d3f9',code:'D17'},{name:'葡萄紫',hex:'#9a64b8',code:'D18'},
+    {name:'藕荷',hex:'#d8c2d9',code:'D19'},{name:'亮紫',hex:'#9a35ad',code:'D20'},{name:'深品红',hex:'#940595',code:'D21'},
+    {name:'深靛蓝',hex:'#38389a',code:'D22'},{name:'丁香',hex:'#eadbf8',code:'D23'},{name:'长春花',hex:'#768ae1',code:'D24'},
+    {name:'宝蓝紫',hex:'#4950c2',code:'D25'},{name:'浅藕荷',hex:'#d6c6eb',code:'D26'},
+    // E系列 - 粉色系
+    {name:'浅粉',hex:'#f6d4cb',code:'E1'},{name:'粉红',hex:'#fcc1dd',code:'E2'},{name:'淡品红',hex:'#f6bde8',code:'E3'},
+    {name:'桃红',hex:'#e8649e',code:'E4'},{name:'杜鹃粉',hex:'#f0569f',code:'E5'},{name:'玫瑰红',hex:'#eb4172',code:'E6'},
+    {name:'莓红',hex:'#c53674',code:'E7'},{name:'婴儿粉',hex:'#fddbe9',code:'E8'},{name:'洋红',hex:'#e376c7',code:'E9'},
+    {name:'品红',hex:'#d13b95',code:'E10'},{name:'肉粉',hex:'#f7dad4',code:'E11'},{name:'糖果粉',hex:'#f693bf',code:'E12'},
+    {name:'深玫红',hex:'#b5026a',code:'E13'},{name:'杏粉',hex:'#fad4bf',code:'E14'},{name:'淡粉',hex:'#f5c9ca',code:'E15'},
+    {name:'奶白粉',hex:'#fbf4ec',code:'E16'},{name:'柔粉',hex:'#f7e3ec',code:'E17'},{name:'浅玫红',hex:'#f9c8db',code:'E18'},
+    {name:'樱花粉',hex:'#f6bbd1',code:'E19'},{name:'灰粉',hex:'#d7c6ce',code:'E20'},{name:'豆沙粉',hex:'#c09da4',code:'E21'},
+    {name:'暗粉',hex:'#b38c9f',code:'E22'},{name:'紫灰粉',hex:'#937d8a',code:'E23'},{name:'淡紫粉',hex:'#debee5',code:'E24'},
+    // F系列 - 红色系
+    {name:'珊瑚橘',hex:'#fe9381',code:'F1'},{name:'朱红',hex:'#f63d4b',code:'F2'},{name:'橙红',hex:'#ee4e3e',code:'F3'},
+    {name:'亮红',hex:'#fb2a40',code:'F4'},{name:'红',hex:'#e10328',code:'F5'},{name:'酒红',hex:'#913635',code:'F6'},
+    {name:'深酒红',hex:'#911932',code:'F7'},{name:'暗红',hex:'#bb0126',code:'F8'},{name:'西瓜红',hex:'#e0677a',code:'F9'},
+    {name:'砖红',hex:'#874628',code:'F10'},{name:'深巧克力',hex:'#592323',code:'F11'},{name:'草莓红',hex:'#f3536b',code:'F12'},
+    {name:'番茄红',hex:'#f45c45',code:'F13'},{name:'浅珊瑚',hex:'#fcadb2',code:'F14'},{name:'深红',hex:'#d50527',code:'F15'},
+    {name:'浅杏',hex:'#f8c0a9',code:'F16'},{name:'鲑鱼粉',hex:'#e89b7d',code:'F17'},{name:'铜棕',hex:'#d07f4a',code:'F18'},
+    {name:'砖玫瑰',hex:'#be454a',code:'F19'},{name:'灰玫瑰',hex:'#c69495',code:'F20'},{name:'浅鲑鱼',hex:'#f2b8c6',code:'F21'},
+    {name:'粉玫',hex:'#f7c3d0',code:'F22'},{name:'陶红',hex:'#ed806c',code:'F23'},{name:'暗玫',hex:'#e09daf',code:'F24'},
+    {name:'辣椒红',hex:'#e84854',code:'F25'},
+    // G系列 - 棕色/大地色系
+    {name:'浅杏橙',hex:'#ffe4d3',code:'G1'},{name:'杏橙',hex:'#fcc6ac',code:'G2'},{name:'浅驼',hex:'#f1c4a5',code:'G3'},
+    {name:'驼色',hex:'#dcb387',code:'G4'},{name:'姜黄',hex:'#e7b34e',code:'G5'},{name:'金橙',hex:'#e3a014',code:'G6'},
+    {name:'可可棕',hex:'#985c3a',code:'G7'},{name:'深咖',hex:'#713d2f',code:'G8'},{name:'浅棕',hex:'#e4b685',code:'G9'},
+    {name:'橘棕',hex:'#da8c42',code:'G10'},{name:'卡其',hex:'#dac898',code:'G11'},{name:'肤色',hex:'#fec993',code:'G12'},
+    {name:'中棕',hex:'#b2714b',code:'G13'},{name:'灰棕',hex:'#8b684c',code:'G14'},{name:'极浅米',hex:'#f6f8e3',code:'G15'},
+    {name:'暖米',hex:'#f2d8c1',code:'G16'},{name:'深灰棕',hex:'#77544e',code:'G17'},{name:'蜜桃',hex:'#ffe3d5',code:'G18'},
+    {name:'陶土',hex:'#dd7d41',code:'G19'},{name:'红棕',hex:'#a5452f',code:'G20'},{name:'灰褐',hex:'#b38561',code:'G21'},
+    // H系列 - 中性色/黑白灰
+    {name:'白',hex:'#ffffff',code:'H1'},{name:'近白',hex:'#fbfbfb',code:'H2'},{name:'浅灰',hex:'#b4b4b4',code:'H3'},
+    {name:'中浅灰',hex:'#878787',code:'H4'},{name:'中灰',hex:'#464648',code:'H5'},{name:'深灰',hex:'#2c2c2c',code:'H6'},
+    {name:'黑',hex:'#010101',code:'H7'},{name:'淡粉灰',hex:'#e7d6dc',code:'H8'},{name:'极浅灰',hex:'#efedee',code:'H9'},
+    {name:'亮灰',hex:'#ebebeb',code:'H10'},{name:'银灰',hex:'#cdcdcd',code:'H11'},{name:'暖白',hex:'#fdf6ee',code:'H12'},
+    {name:'淡紫灰',hex:'#f4edf1',code:'H13'},{name:'蓝灰',hex:'#ced7d4',code:'H14'},{name:'中蓝灰',hex:'#9aa6a6',code:'H15'},
+    {name:'墨黑',hex:'#1b1213',code:'H16'},{name:'米白',hex:'#f0eeef',code:'H17'},{name:'象牙白',hex:'#fcfff6',code:'H18'},
+    {name:'灰米',hex:'#f2eee5',code:'H19'},{name:'深蓝灰',hex:'#96a09f',code:'H20'},{name:'淡绿白',hex:'#f8fbe6',code:'H21'},
+    {name:'紫灰',hex:'#cacad2',code:'H22'},{name:'棕灰',hex:'#9b9c94',code:'H23'},
+    // M系列 - 莫兰迪/柔和色系
+    {name:'鼠尾草',hex:'#bbc6b6',code:'M1'},{name:'灰绿',hex:'#909994',code:'M2'},{name:'暗蓝绿',hex:'#697e81',code:'M3'},
+    {name:'暖杏',hex:'#e0d4bc',code:'M4'},{name:'灰卡其',hex:'#d1ccaf',code:'M5'},{name:'橄榄灰',hex:'#b0aa86',code:'M6'},
+    {name:'褐灰',hex:'#b0a796',code:'M7'},{name:'灰粉',hex:'#ae8082',code:'M8'},{name:'褐金',hex:'#a68862',code:'M9'},
+    {name:'淡紫灰',hex:'#c4b3bb',code:'M10'},{name:'紫褐',hex:'#9d7693',code:'M11'},{name:'深紫褐',hex:'#644b51',code:'M12'},
+    {name:'陶土棕',hex:'#c79266',code:'M13'},{name:'陶红',hex:'#c27563',code:'M14'},{name:'岩灰',hex:'#747d7a',code:'M15'},
+  ],
+  perler: [
+    {name:'白色',hex:'#FEFEFE',code:'01'},{name:'奶油白',hex:'#FFF8DC',code:'02'},{name:'浅肤色',hex:'#FFD5B4',code:'03'},
+    {name:'肤色',hex:'#FEC89A',code:'04'},{name:'淡黄',hex:'#FFFACD',code:'05'},{name:'黄',hex:'#FFD700',code:'06'},
+    {name:'金黄',hex:'#FFB800',code:'07'},{name:'橙',hex:'#FF8C00',code:'08'},{name:'橘红',hex:'#FF6A00',code:'09'},
+    {name:'蜜桃',hex:'#FFB47A',code:'10'},{name:'浅粉',hex:'#FFB6D0',code:'11'},{name:'粉',hex:'#FF6B9D',code:'12'},
+    {name:'玫红',hex:'#E8306B',code:'13'},{name:'红',hex:'#DD0000',code:'14'},{name:'深红',hex:'#B71C1C',code:'15'},
+    {name:'淡紫',hex:'#D5C6F0',code:'16'},{name:'薰衣草',hex:'#B8A0D8',code:'17'},{name:'紫',hex:'#7B3FA3',code:'18'},
+    {name:'深紫',hex:'#4A1A7A',code:'19'},{name:'品红',hex:'#C20078',code:'20'},{name:'浅蓝',hex:'#A8D8EA',code:'21'},
+    {name:'天蓝',hex:'#6BB5D8',code:'22'},{name:'蓝',hex:'#3366CC',code:'23'},{name:'深蓝',hex:'#1A237E',code:'24'},
+    {name:'薄荷',hex:'#7AD7D1',code:'25'},{name:'青绿',hex:'#2AA9B0',code:'26'},{name:'浅绿',hex:'#B5E6B5',code:'27'},
+    {name:'黄绿',hex:'#C2E079',code:'28'},{name:'绿',hex:'#4CAF50',code:'29'},{name:'深绿',hex:'#2E7D32',code:'30'},
+    {name:'橄榄',hex:'#6B8E23',code:'31'},{name:'沙',hex:'#EADDCA',code:'32'},{name:'浅棕',hex:'#C4956A',code:'33'},
+    {name:'棕',hex:'#8B5A3C',code:'34'},{name:'深棕',hex:'#4E342E',code:'35'},{name:'浅灰',hex:'#D5D5D5',code:'36'},
+    {name:'灰',hex:'#9E9E9E',code:'37'},{name:'深灰',hex:'#555555',code:'38'},{name:'黑',hex:'#212121',code:'39'},
+    {name:'夜光白',hex:'#F0F8E0',code:'G1'},{name:'夜光蓝',hex:'#B0E0F0',code:'G2'},{name:'夜光绿',hex:'#C8F0C8',code:'G3'},
+    {name:'透明',hex:'#F5F5EC',code:'CL'},
+  ],
+  hama: [
+    {name:'白',hex:'#FFFFFF',code:'H01'},{name:'奶油',hex:'#FFF8E7',code:'H02'},{name:'浅肤',hex:'#FDD9B5',code:'H03'},
+    {name:'黄',hex:'#FFD600',code:'H04'},{name:'橙',hex:'#FF8800',code:'H05'},{name:'红',hex:'#DD0000',code:'H06'},
+    {name:'粉',hex:'#FF80A5',code:'H07'},{name:'紫',hex:'#8833CC',code:'H08'},{name:'浅蓝',hex:'#80C8FF',code:'H09'},
+    {name:'蓝',hex:'#2266CC',code:'H10'},{name:'深蓝',hex:'#112288',code:'H11'},{name:'蓝绿',hex:'#22AAAA',code:'H12'},
+    {name:'浅绿',hex:'#88DD66',code:'H13'},{name:'绿',hex:'#33AA33',code:'H14'},{name:'深绿',hex:'#116622',code:'H15'},
+    {name:'棕',hex:'#884422',code:'H16'},{name:'灰',hex:'#999999',code:'H17'},{name:'深灰',hex:'#555555',code:'H18'},
+    {name:'黑',hex:'#111111',code:'H19'},{name:'米',hex:'#EEDDAA',code:'H20'},{name:'砖红',hex:'#BB4411',code:'H21'},
+    {name:'薰衣草',hex:'#BBAADD',code:'H22'},{name:'薄荷绿',hex:'#99DDCC',code:'H23'},{name:'金黄',hex:'#FFAA00',code:'H24'},
+    {name:'品红',hex:'#CC1177',code:'H25'},{name:'天蓝',hex:'#55AADD',code:'H26'},{name:'荧光黄',hex:'#EEFF00',code:'H27'},
+    {name:'荧光橙',hex:'#FF6600',code:'H28'},{name:'荧光粉',hex:'#FF44AA',code:'H29'},{name:'荧光绿',hex:'#66FF33',code:'H30'},
+  ],
+};
+
+// ============ STATE ============
+let beadColors = [...palettes.artkalFull];
+let colorGroupFilter = 'ALL'; // 'ALL' or 'A'-'M'
+const state = {
+  originalImage: null, originalAspectRatio: 1,
+  patternData: [], gridWidth: 30, gridHeight: 30,
+  selectedColorIndex: (() => { const idx = beadColors.findIndex(c => c.code === 'H7'); return idx >= 0 ? idx : Math.max(0, beadColors.length - 1); })(),
+  lockAspect: true, zoom: 1, baseCellSize: 20,
+  isPixelMode: false, showPreview: false, exportStyle: 'bead', currentTool: 'brush',
+  history: [], historyIndex: -1, maxHistory: 100,
+  // Filters
+  brightness: 0, contrast: 0, saturation: 100, threshold: 0, sharpen: 0,
+  // Crop image
+  croppedImage: null,
+};
+
+// ============ DOM REFS ============
+const fileInput = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+const canvas = document.getElementById('patternCanvas');
+const canvasWrapper = document.getElementById('canvasWrapper');
+const ctx = canvas.getContext('2d');
+const placeholder = document.getElementById('placeholder');
+const colorGrid = document.getElementById('colorGrid');
+const zoomLabel = document.getElementById('zoomLabel');
+const toast = document.getElementById('toast');
+const coordTip = document.getElementById('coordTip');
+const modalContainer = document.getElementById('modalContainer');
+
+// ============ INIT ============
+function init() {
+  renderColorFilter();
+  renderColorPalette();
+  updateColorBar();
+  setupDragDrop();
+  updateStats();
+  updateCanvasSize();
+  updateToolUI();
+}
+init();
+
+// ============ COLOR PALETTE RENDERING ============
+function renderColorFilter() {
+  const filterBar = document.getElementById('colorFilter');
+  const groups = ['ALL', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'M'];
+  filterBar.innerHTML = '';
+  groups.forEach(g => {
+    const btn = document.createElement('button');
+    btn.textContent = g === 'ALL' ? '全' : g;
+    btn.className = (colorGroupFilter === g) ? 'active' : '';
+    btn.title = g === 'ALL' ? '全部颜色' : (artkalGroupLabels[g] || g + '系列');
+    btn.addEventListener('click', () => {
+      colorGroupFilter = g;
+      renderColorFilter();
+      renderColorPalette();
+    });
+    filterBar.appendChild(btn);
+  });
+}
+
+function renderColorPalette() {
+  colorGrid.innerHTML = '';
+  let lastGroup = '';
+  const filteredColors = [];
+  const indexMap = []; // map filtered index → actual index
+  beadColors.forEach((color, i) => {
+    const group = color.code.charAt(0);
+    if (colorGroupFilter === 'ALL' || group === colorGroupFilter) {
+      indexMap.push(i);
+      filteredColors.push({...color, group});
+    }
+  });
+  filteredColors.forEach((color, fi) => {
+    const actualIndex = indexMap[fi];
+    // Show group label when in ALL mode and starting a new letter group
+    if (colorGroupFilter === 'ALL' && color.group !== lastGroup) {
+      lastGroup = color.group;
+      const label = document.createElement('div');
+      label.className = 'color-group-label';
+      label.textContent = artkalGroupLabels[color.group] || color.group + '系列';
+      colorGrid.appendChild(label);
+    }
+    const swatch = document.createElement('div');
+    swatch.className = 'color-swatch' + (actualIndex === state.selectedColorIndex ? ' selected' : '');
+    swatch.style.background = `radial-gradient(circle at 35% 30%, ${lighten(color.hex,30)}, ${color.hex} 70%, ${darken(color.hex,25)})`;
+    swatch.innerHTML = `<span class="tt">${color.name}<br><b>${color.code}</b></span>`;
+    swatch.addEventListener('click', () => selectColor(actualIndex));
+    colorGrid.appendChild(swatch);
+  });
+}
+
+function updateColorBar() {
+  const c = beadColors[state.selectedColorIndex];
+  if (!c) return;
+  document.getElementById('activeColorDot').style.background =
+    `radial-gradient(circle at 35% 30%, ${lighten(c.hex,30)}, ${c.hex} 70%, ${darken(c.hex,25)})`;
+  document.getElementById('activeColorName').textContent = c.name;
+  document.getElementById('activeColorHex').textContent = c.code;
+}
+
+function selectColor(index) {
+  state.selectedColorIndex = index;
+  updateColorBar();
+  colorGrid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  // Find and highlight the matching swatch
+  const swatches = colorGrid.querySelectorAll('.color-swatch');
+  swatches.forEach((s, fi) => {
+    // Get the actual color index from the swatch's click handler
+    const tt = s.querySelector('.tt');
+    if (tt) {
+      const code = tt.textContent.split('\n').pop().trim();
+      if (code === beadColors[index].code) s.classList.add('selected');
+    }
+  });
+}
+
+// ============ BRAND SWITCH ============
+function onBrandChange() {
+  const brand = document.getElementById('brandSelect').value;
+  beadColors = [...palettes[brand]];
+  colorGroupFilter = 'ALL';
+  // Find a suitable default (black or last color)
+  const blackIdx = beadColors.findIndex(c => c.hex === '#010101' || c.hex === '#212121' || c.code === 'H7');
+  state.selectedColorIndex = blackIdx >= 0 ? blackIdx : Math.min(state.selectedColorIndex, beadColors.length - 1);
+  renderColorFilter();
+  renderColorPalette();
+  updateColorBar();
+  if (state.originalImage) { pushHistory(); processImage(); }
+}
+
+// ============ DRAG & DROP ============
+function setupDragDrop() {
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor = 'var(--accent)'; });
+  uploadZone.addEventListener('dragleave', () => { if(!uploadZone.classList.contains('has-image')) uploadZone.style.borderColor = 'var(--border)'; });
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.style.borderColor = 'var(--border)';
+    const file = e.dataTransfer.files[0];
+    if (file) loadImage(file);
+  });
+}
+
+function handleFileSelect(e) { const f = e.target.files[0]; if (f) loadImage(f); }
+
+function loadImage(file) {
+  if (!file.type.match(/image\/(jpeg|png|webp)/)) { showToast('请上传 JPG、PNG 或 WebP 格式'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      state.originalImage = img;
+      state.croppedImage = null;
+      state.originalAspectRatio = img.width / img.height;
+      if (state.lockAspect) adjustGridToAspect();
+      state.history = []; state.historyIndex = -1;
+      processImage();
+      uploadZone.classList.add('has-image');
+      uploadZone.querySelector('.upload-text').textContent = file.name;
+      placeholder.style.display = 'none';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function adjustGridToAspect() {
+  const r = state.originalAspectRatio;
+  // Keep current width, adjust height
+  state.gridHeight = Math.max(5, Math.min(120, Math.round(state.gridWidth / r)));
+  updateSliders();
+}
+
+// ============ IMAGE PROCESSING ============
+function processImage() {
+  if (!state.originalImage) return;
+  const srcImg = state.croppedImage || state.originalImage;
+  const w = state.gridWidth;
+  const h = state.gridHeight;
+
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = w; offCanvas.height = h;
+  const offCtx = offCanvas.getContext('2d');
+  offCtx.drawImage(srcImg, 0, 0, w, h);
+
+  let imageData = offCtx.getImageData(0, 0, w, h);
+  let pixels = imageData.data;
+
+  // Apply sharpen (separate pass — needs neighbors)
+  if (state.sharpen > 0) {
+    pixels = applySharpen(pixels, w, h, state.sharpen / 100);
+  }
+
+  state.patternData = [];
+  for (let row = 0; row < h; row++) {
+    state.patternData[row] = [];
+    for (let col = 0; col < w; col++) {
+      const idx = (row * w + col) * 4;
+      let r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+
+      // Brightness
+      const bAdj = state.brightness * 2.55;
+      r += bAdj; g += bAdj; b += bAdj;
+
+      // Contrast
+      if (state.contrast !== 0) {
+        const factor = (259 * (state.contrast + 255)) / (255 * (259 - state.contrast));
+        r = factor * (r - 128) + 128;
+        g = factor * (g - 128) + 128;
+        b = factor * (b - 128) + 128;
+      }
+
+      // Saturation
+      if (state.saturation !== 100) {
+        const hsl = rgbToHsl(r, g, b);
+        hsl.s = Math.min(1, Math.max(0, hsl.s * (state.saturation / 100)));
+        const rgb = hslToRgb(hsl.h, hsl.s, hsl.l);
+        r = rgb.r; g = rgb.g; b = rgb.b;
+      }
+
+      // Threshold — push toward black or white
+      if (state.threshold > 0) {
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        const t = state.threshold / 100;
+        const shift = t * 128;
+        const factor = gray < 128 ? -shift : shift;
+        r = Math.max(0, Math.min(255, r + factor * 2));
+        g = Math.max(0, Math.min(255, g + factor * 2));
+        b = Math.max(0, Math.min(255, b + factor * 2));
+      }
+
+      r = Math.max(0, Math.min(255, Math.round(r)));
+      g = Math.max(0, Math.min(255, Math.round(g)));
+      b = Math.max(0, Math.min(255, Math.round(b)));
+
+      state.patternData[row][col] = findNearestBead(r, g, b);
+    }
+  }
+
+  updateStats();
+  renderPattern();
+}
+
+function findNearestBead(r, g, b) {
+  let minDist = Infinity, minIdx = 0;
+  for (let i = 0; i < beadColors.length; i++) {
+    const h = beadColors[i].hex;
+    const br = parseInt(h.slice(1,3),16), bg = parseInt(h.slice(3,5),16), bb = parseInt(h.slice(5,7),16);
+    const dr = (r - br) * 0.299, dg = (g - bg) * 0.587, db = (b - bb) * 0.114;
+    const dist = dr * dr + dg * dg + db * db;
+    if (dist < minDist) { minDist = dist; minIdx = i; }
+  }
+  return minIdx;
+}
+
+function applySharpen(pixels, w, h, amount) {
+  const result = new Uint8ClampedArray(pixels);
+  if (amount <= 0) return pixels;
+  const c = amount * 1.5;
+  const kernel = [0, -c/4, 0, -c/4, 1+c, -c/4, 0, -c/4, 0];
+  for (let row = 1; row < h - 1; row++) {
+    for (let col = 1; col < w - 1; col++) {
+      for (let ch = 0; ch < 3; ch++) {
+        let val = 0;
+        for (let kr = -1; kr <= 1; kr++)
+          for (let kc = -1; kc <= 1; kc++)
+            val += pixels[((row+kr)*w + (col+kc))*4 + ch] * kernel[(kr+1)*3 + (kc+1)];
+        result[(row*w + col)*4 + ch] = Math.max(0, Math.min(255, val));
+      }
+    }
+  }
+  return result;
+}
+
+// ============ CANVAS RENDERING ============
+function renderPattern() {
+  const w = state.gridWidth, h = state.gridHeight;
+  state.baseCellSize = calculateBaseCellSize();
+  const cs = state.baseCellSize;
+
+  canvas.width = w * cs;
+  canvas.height = h * cs;
+  canvas.style.width = (w * cs * state.zoom) + 'px';
+  canvas.style.height = (h * cs * state.zoom) + 'px';
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw original image as background when preview mode is on
+  if (state.showPreview && state.originalImage) {
+    const src = state.croppedImage || state.originalImage;
+    ctx.fillStyle = '#f0ece6';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 0.50;
+    ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.fillStyle = '#f0ece6';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  if (state.isPixelMode) {
+    renderPixelMode();
+  } else {
+    renderBeadMode();
+  }
+  drawTenGrid(ctx, 0, 0, w, h, cs);
+}
+
+function drawTenGrid(targetCtx, offsetX, offsetY, w, h, cs, color) {
+  targetCtx.save();
+  targetCtx.strokeStyle = color || 'rgba(0,0,0,0.20)';
+  targetCtx.lineWidth = Math.max(0.6, cs * 0.04);
+  targetCtx.setLineDash([Math.max(2, cs * 0.12), Math.max(2, cs * 0.12)]);
+  for (let col = 10; col < w; col += 10) {
+    const x = offsetX + col * cs;
+    targetCtx.beginPath();
+    targetCtx.moveTo(x, offsetY);
+    targetCtx.lineTo(x, offsetY + h * cs);
+    targetCtx.stroke();
+  }
+  for (let row = 10; row < h; row += 10) {
+    const y = offsetY + row * cs;
+    targetCtx.beginPath();
+    targetCtx.moveTo(offsetX, y);
+    targetCtx.lineTo(offsetX + w * cs, y);
+    targetCtx.stroke();
+  }
+  targetCtx.setLineDash([]);
+  targetCtx.restore();
+}
+
+function renderBeadMode() {
+  const w = state.gridWidth, h = state.gridHeight, cs = state.baseCellSize;
+  const gap = Math.max(1, cs * 0.12);
+  const radius = (cs - gap * 2) / 2;
+
+  for (let row = 0; row < h; row++) {
+    for (let col = 0; col < w; col++) {
+      const cx = col * cs + cs / 2, cy = row * cs + cs / 2;
+      const hex = beadColors[state.patternData[row][col]].hex;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.10)';
+      ctx.beginPath(); ctx.arc(cx + 1, cy + 1.5, radius, 0, Math.PI * 2); ctx.fill();
+
+      const grad = ctx.createRadialGradient(cx - radius*0.3, cy - radius*0.3, radius*0.05, cx, cy, radius);
+      grad.addColorStop(0, lighten(hex, 40));
+      grad.addColorStop(0.5, hex);
+      grad.addColorStop(1, darken(hex, 20));
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+
+      ctx.strokeStyle = 'rgba(0,0,0,0.07)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+}
+
+function renderPixelMode() {
+  const w = state.gridWidth, h = state.gridHeight, cs = state.baseCellSize;
+  for (let row = 0; row < h; row++) {
+    for (let col = 0; col < w; col++) {
+      ctx.fillStyle = beadColors[state.patternData[row][col]].hex;
+      ctx.fillRect(col * cs, row * cs, cs, cs);
+    }
+  }
+  // Grid lines
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 0.5;
+  for (let row = 0; row <= h; row++) { ctx.beginPath(); ctx.moveTo(0, row*cs); ctx.lineTo(w*cs, row*cs); ctx.stroke(); }
+  for (let col = 0; col <= w; col++) { ctx.beginPath(); ctx.moveTo(col*cs, 0); ctx.lineTo(col*cs, h*cs); ctx.stroke(); }
+}
+
+function calculateBaseCellSize() {
+  const cw = canvasWrapper.clientWidth - 40;
+  const ch = canvasWrapper.clientHeight - 40;
+  return Math.max(4, Math.min(24, Math.floor(cw / state.gridWidth), Math.floor(ch / state.gridHeight)));
+}
+
+function togglePixelMode() {
+  state.isPixelMode = document.getElementById('pixelMode').checked;
+  if (state.patternData.length > 0) renderPattern();
+}
+function togglePreviewMode() {
+  state.showPreview = document.getElementById('previewMode').checked;
+  if (state.patternData.length > 0) renderPattern();
+}
+function setExportStyle(style) {
+  state.exportStyle = style;
+  document.getElementById('exportBeadBtn').style.background = style === 'bead' ? 'var(--accent)' : '#f0ece6';
+  document.getElementById('exportBeadBtn').style.color = style === 'bead' ? '#fff' : 'var(--text-secondary)';
+  document.getElementById('exportPixelBtn').style.background = style === 'pixel' ? 'var(--accent)' : '#f0ece6';
+  document.getElementById('exportPixelBtn').style.color = style === 'pixel' ? '#fff' : 'var(--text-secondary)';
+}
+
+// ============ SINGLE BEAD REDRAW ============
+function redrawBead(row, col) {
+  const cs = state.baseCellSize;
+  const x = col * cs, y = row * cs;
+  ctx.fillStyle = '#f0ece6';
+  ctx.fillRect(x, y, cs, cs);
+
+  if (state.isPixelMode) {
+    ctx.fillStyle = beadColors[state.patternData[row][col]].hex;
+    ctx.fillRect(x, y, cs, cs);
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(x, y, cs, cs);
+  } else {
+    const gap = Math.max(1, cs * 0.12);
+    const radius = (cs - gap * 2) / 2;
+    const cx = x + cs / 2, cy = y + cs / 2;
+    const hex = beadColors[state.patternData[row][col]].hex;
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
+    ctx.beginPath(); ctx.arc(cx + 1, cy + 1.5, radius, 0, Math.PI * 2); ctx.fill();
+    const grad = ctx.createRadialGradient(cx - radius*0.3, cy - radius*0.3, radius*0.05, cx, cy, radius);
+    grad.addColorStop(0, lighten(hex, 40));
+    grad.addColorStop(0.5, hex);
+    grad.addColorStop(1, darken(hex, 20));
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.07)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.stroke();
+  }
+}
+
+// ============ TOOLS ============
+function setTool(tool) { state.currentTool = tool; updateToolUI(); }
+function updateToolUI() {
+  document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === state.currentTool));
+}
+
+function paintBead(row, col) {
+  if (row < 0 || row >= state.gridHeight || col < 0 || col >= state.gridWidth) return;
+  if (state.patternData[row][col] === state.selectedColorIndex) return;
+  state.patternData[row][col] = state.selectedColorIndex;
+  redrawBead(row, col);
+}
+
+function eraseBead(row, col) {
+  if (row < 0 || row >= state.gridHeight || col < 0 || col >= state.gridWidth) return;
+  const whiteIdx = 0; // white is first
+  if (state.patternData[row][col] === whiteIdx) return;
+  state.patternData[row][col] = whiteIdx;
+  redrawBead(row, col);
+}
+
+function fillBucket(startRow, startCol) {
+  if (startRow < 0 || startRow >= state.gridHeight || startCol < 0 || startCol >= state.gridWidth) return;
+  const targetColor = state.patternData[startRow][startCol];
+  const replacementColor = state.selectedColorIndex;
+  if (targetColor === replacementColor) return;
+
+  const h = state.gridHeight, w = state.gridWidth;
+  const stack = [[startRow, startCol]];
+  const visited = new Set();
+  let count = 0;
+
+  while (stack.length > 0 && count < w * h) {
+    const [r, c] = stack.pop();
+    const key = r * w + c;
+    if (visited.has(key)) continue;
+    if (r < 0 || r >= h || c < 0 || c >= w) continue;
+    if (state.patternData[r][c] !== targetColor) continue;
+    visited.add(key);
+    state.patternData[r][c] = replacementColor;
+    redrawBead(r, c);
+    count++;
+    stack.push([r-1, c], [r+1, c], [r, c-1], [r, c+1]);
+  }
+}
+
+// ============ CANVAS INTERACTION ============
+let isDrawing = false, lastR = -1, lastC = -1;
+
+function getEventPos(e) {
+  return {
+    clientX: e.touches ? e.touches[0].clientX : e.clientX,
+    clientY: e.touches ? e.touches[0].clientY : e.clientY
+  };
+}
+
+function getBeadCoords(e) {
+  const { clientX, clientY } = getEventPos(e);
+  const rect = canvas.getBoundingClientRect();
+  const cs = state.baseCellSize * state.zoom;
+  const col = Math.floor((clientX - rect.left) / cs);
+  const row = Math.floor((clientY - rect.top) / cs);
+  return { row, col, clientX, clientY };
+}
+
+function updateCoordTip(e) {
+  const { row, col, clientX, clientY } = getBeadCoords(e);
+  if (row < 0 || row >= state.gridHeight || col < 0 || col >= state.gridWidth || state.patternData.length === 0) {
+    coordTip.style.display = 'none'; return;
+  }
+  const c = beadColors[state.patternData[row][col]];
+  coordTip.textContent = `R${row+1} C${col+1} | ${c.name} ${c.code}`;
+  coordTip.style.display = 'block';
+  coordTip.style.left = (clientX + 16) + 'px';
+  coordTip.style.top = (clientY - 32) + 'px';
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 1 || (e.button === 0 && e.shiftKey)) { startPanDrag(e); return; }
+  if (e.button === 2) { e.preventDefault(); doToolAction(e, true); return; }
+  if (e.button === 0) { isDrawing = true; lastR = lastC = -1; doToolAction(e, false); }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (state.isPanning) { updatePanDrag(e); return; }
+  if (e.buttons === 1 && isDrawing) doToolAction(e, false);
+  updateCoordTip(e);
+});
+
+canvas.addEventListener('mouseup', () => { stopDrawing(); });
+canvas.addEventListener('mouseleave', () => { stopDrawing(); coordTip.style.display = 'none'; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) { startPanDrag(e.touches[0]); e.preventDefault(); return; }
+  if (e.touches.length === 1) { isDrawing = true; lastR = lastC = -1; doToolAction(e, false); updateCoordTip(e); e.preventDefault(); }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  if (state.isPanning && e.touches.length === 2) { updatePanDrag(e.touches[0]); e.preventDefault(); return; }
+  if (isDrawing && e.touches.length === 1) { doToolAction(e, false); updateCoordTip(e); e.preventDefault(); }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => { stopDrawing(); coordTip.style.display = 'none'; });
+
+canvas.addEventListener('wheel', e => { e.preventDefault(); e.deltaY < 0 ? zoomIn() : zoomOut(); }, { passive: false });
+
+function doToolAction(e, isRightClick) {
+  const { row, col } = getBeadCoords(e);
+  if (row < 0 || row >= state.gridHeight || col < 0 || col >= state.gridWidth) return;
+  if (row === lastR && col === lastC) return;
+  if (isRightClick || state.currentTool === 'picker') {
+    selectColor(state.patternData[row][col]);
+    showToast(`已吸取: ${beadColors[state.patternData[row][col]].name} ${beadColors[state.patternData[row][col]].code}`);
+    return;
+  }
+  if (lastR === -1 && state.currentTool !== 'fill') pushHistory();
+  if (state.currentTool === 'brush') paintBead(row, col);
+  else if (state.currentTool === 'eraser') eraseBead(row, col);
+  else if (state.currentTool === 'fill') { pushHistory(); fillBucket(row, col); isDrawing = false; updateStats(); return; }
+  lastR = row; lastC = col;
+}
+
+function stopDrawing() {
+  state.isPanning = false; isDrawing = false;
+  canvasWrapper.classList.remove('panning');
+  if (lastR !== -1) { updateStats(); lastR = -1; lastC = -1; }
+}
+
+// Pan
+function startPanDrag(e) {
+  state.isPanning = true;
+  const p = getEventPos(e);
+  state.panStartX = p.clientX; state.panStartY = p.clientY;
+  canvasWrapper.classList.add('panning');
+}
+function updatePanDrag(e) {
+  const p = getEventPos(e);
+  canvasWrapper.scrollBy(state.panStartX - p.clientX, state.panStartY - p.clientY);
+  state.panStartX = p.clientX; state.panStartY = p.clientY;
+}
+
+// ============ UNDO/REDO ============
+function pushHistory() {
+  state.history = state.history.slice(0, state.historyIndex + 1);
+  state.history.push(state.patternData.map(r => [...r]));
+  if (state.history.length > state.maxHistory) state.history.shift();
+  else state.historyIndex++;
+}
+function undo() {
+  if (state.historyIndex < 0) return;
+  state.patternData = state.history[state.historyIndex].map(r => [...r]);
+  state.historyIndex--;
+  renderPattern(); updateStats();
+  showToast('已撤销');
+}
+function redo() {
+  if (state.historyIndex >= state.history.length - 1) return;
+  state.historyIndex++;
+  state.patternData = state.history[state.historyIndex].map(r => [...r]);
+  renderPattern(); updateStats();
+  showToast('已重做');
+}
+
+// ============ KEYBOARD ============
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  const key = e.key.toLowerCase();
+  if (e.ctrlKey && key === 'z') { e.preventDefault(); undo(); }
+  else if (e.ctrlKey && key === 'y') { e.preventDefault(); redo(); }
+  else if (key === 'b') setTool('brush');
+  else if (key === 'e') setTool('eraser');
+  else if (key === 'g') setTool('fill');
+  else if (key === 'i') setTool('picker');
+});
+
+// ============ FLIP ============
+function flipH() {
+  if (state.patternData.length === 0) return;
+  pushHistory();
+  for (let row = 0; row < state.gridHeight; row++) state.patternData[row].reverse();
+  renderPattern();
+  showToast('已水平翻转');
+}
+function flipV() {
+  if (state.patternData.length === 0) return;
+  pushHistory();
+  state.patternData.reverse();
+  renderPattern();
+  showToast('已垂直翻转');
+}
+
+// ============ CROP ============
+let cropState = null;
+function openCrop() {
+  if (!state.originalImage) { showToast('请先上传图片'); return; }
+  const src = state.croppedImage || state.originalImage;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:15px">裁切图片</strong>
+        <button class="btn btn-outline btn-sm" id="cropClose">关闭</button>
+      </div>
+      <p style="font-size:11px;color:var(--text-secondary)">在图片上拖拽选择裁切区域</p>
+      <canvas id="cropCanvas"></canvas>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="cropApply">确认裁切</button>
+        <button class="btn btn-outline btn-sm" id="cropReset">重置裁切</button>
+      </div>
+    </div>
+  `;
+  modalContainer.appendChild(modal);
+
+  const cropCanvas = document.getElementById('cropCanvas');
+  const cropCtx = cropCanvas.getContext('2d');
+  const maxW = window.innerWidth * 0.75, maxH = window.innerHeight * 0.5;
+  let scale = Math.min(maxW / src.width, maxH / src.height, 1);
+  cropCanvas.width = src.width * scale;
+  cropCanvas.height = src.height * scale;
+  cropCtx.drawImage(src, 0, 0, cropCanvas.width, cropCanvas.height);
+
+  cropState = { scale, startX: 0, startY: 0, endX: cropCanvas.width, endY: cropCanvas.height, dragging: false };
+
+  function drawRect() {
+    cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.drawImage(src, 0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.fillStyle = 'rgba(0,0,0,0.35)';
+    cropCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+    const x = Math.min(cropState.startX, cropState.endX);
+    const y = Math.min(cropState.startY, cropState.endY);
+    const w = Math.abs(cropState.endX - cropState.startX);
+    const h = Math.abs(cropState.endY - cropState.startY);
+    cropCtx.clearRect(x, y, w, h);
+    cropCtx.drawImage(src, 0, 0, cropCanvas.width, cropCanvas.height);
+    cropCtx.globalAlpha = 0.4;
+    cropCtx.fillStyle = '#fff';
+    cropCtx.fillRect(x, y, w, h);
+    cropCtx.globalAlpha = 1;
+    cropCtx.strokeStyle = '#7c5cbf';
+    cropCtx.lineWidth = 2;
+    cropCtx.setLineDash([6, 3]);
+    cropCtx.strokeRect(x, y, w, h);
+    cropCtx.setLineDash([]);
+  }
+  drawRect();
+
+  cropCanvas.addEventListener('mousedown', e => {
+    const rect = cropCanvas.getBoundingClientRect();
+    cropState.startX = e.clientX - rect.left;
+    cropState.startY = e.clientY - rect.top;
+    cropState.endX = cropState.startX;
+    cropState.endY = cropState.startY;
+    cropState.dragging = true;
+  });
+  cropCanvas.addEventListener('mousemove', e => {
+    if (!cropState.dragging) return;
+    const rect = cropCanvas.getBoundingClientRect();
+    cropState.endX = Math.max(0, Math.min(cropCanvas.width, e.clientX - rect.left));
+    cropState.endY = Math.max(0, Math.min(cropCanvas.height, e.clientY - rect.top));
+    drawRect();
+  });
+  cropCanvas.addEventListener('mouseup', () => { cropState.dragging = false; });
+
+  document.getElementById('cropClose').onclick = () => { modalContainer.innerHTML = ''; };
+  document.getElementById('cropReset').onclick = () => {
+    cropState.startX = 0; cropState.startY = 0;
+    cropState.endX = cropCanvas.width; cropState.endY = cropCanvas.height;
+    drawRect();
+  };
+  document.getElementById('cropApply').onclick = () => {
+    const x = Math.min(cropState.startX, cropState.endX) / cropState.scale;
+    const y = Math.min(cropState.startY, cropState.endY) / cropState.scale;
+    const w = Math.abs(cropState.endX - cropState.startX) / cropState.scale;
+    const h = Math.abs(cropState.endY - cropState.startY) / cropState.scale;
+    if (w < 5 || h < 5) { showToast('裁切区域太小'); return; }
+    const cropCanvas2 = document.createElement('canvas');
+    cropCanvas2.width = w; cropCanvas2.height = h;
+    cropCanvas2.getContext('2d').drawImage(src, x, y, w, h, 0, 0, w, h);
+    const croppedImg = new Image();
+    croppedImg.onload = () => {
+      state.croppedImage = croppedImg;
+      state.originalAspectRatio = w / h;
+      if (state.lockAspect) adjustGridToAspect();
+      state.history = []; state.historyIndex = -1;
+      processImage();
+      modalContainer.innerHTML = '';
+      showToast('裁切完成');
+    };
+    croppedImg.src = cropCanvas2.toDataURL();
+  };
+}
+
+// ============ ZOOM ============
+function zoomIn() { state.zoom = Math.min(8, state.zoom * 1.25); applyZoom(); }
+function zoomOut() { state.zoom = Math.max(0.1, state.zoom / 1.25); applyZoom(); }
+function zoomFit() {
+  const cw = canvasWrapper.clientWidth - 40, ch = canvasWrapper.clientHeight - 40;
+  if (state.gridWidth === 0) return;
+  state.zoom = Math.min(cw/(state.gridWidth*state.baseCellSize), ch/(state.gridHeight*state.baseCellSize));
+  applyZoom();
+}
+function applyZoom() {
+  zoomLabel.textContent = Math.round(state.zoom * 100) + '%';
+  if (state.patternData.length > 0) {
+    const cs = state.baseCellSize;
+    canvas.style.width = (state.gridWidth * cs * state.zoom) + 'px';
+    canvas.style.height = (state.gridHeight * cs * state.zoom) + 'px';
+  }
+}
+
+// ============ CONTROLS ============
+function onGridSizeChange() {
+  state.gridWidth = parseInt(document.getElementById('gridWidth').value);
+  state.gridHeight = parseInt(document.getElementById('gridHeight').value);
+  state.lockAspect = document.getElementById('lockAspect').checked;
+  if (state.lockAspect && state.originalImage) {
+    if (document.activeElement.id === 'gridWidth')
+      state.gridHeight = Math.max(5, Math.min(120, Math.round(state.gridWidth / state.originalAspectRatio)));
+    else if (document.activeElement.id === 'gridHeight')
+      state.gridWidth = Math.max(5, Math.min(120, Math.round(state.gridHeight * state.originalAspectRatio)));
+  }
+  updateSliders();
+  if (state.originalImage) { state.history = []; state.historyIndex = -1; processImage(); zoomFit(); }
+  updateCanvasSize();
+}
+
+function onFilterChange() {
+  state.brightness = parseInt(document.getElementById('brightness').value);
+  state.contrast = parseInt(document.getElementById('contrast').value);
+  state.saturation = parseInt(document.getElementById('saturation').value);
+  state.threshold = parseInt(document.getElementById('threshold').value);
+  state.sharpen = parseInt(document.getElementById('sharpen').value);
+  document.getElementById('brightVal').textContent = state.brightness;
+  document.getElementById('contrastVal').textContent = state.contrast;
+  document.getElementById('satVal').textContent = state.saturation + '%';
+  document.getElementById('thresholdVal').textContent = state.threshold;
+  document.getElementById('sharpenVal').textContent = state.sharpen;
+  if (state.originalImage) { state.history = []; state.historyIndex = -1; processImage(); }
+}
+
+function updateSliders() {
+  document.getElementById('gridWidth').value = state.gridWidth;
+  document.getElementById('gridHeight').value = state.gridHeight;
+  document.getElementById('widthVal').textContent = state.gridWidth;
+  document.getElementById('heightVal').textContent = state.gridHeight;
+}
+
+function updateCanvasSize() {
+  calculateBaseCellSize();
+  if (state.patternData.length > 0) renderPattern();
+}
+
+function updateStats() {
+  if (state.patternData.length === 0) {
+    document.getElementById('statColors').textContent = '-';
+    document.getElementById('statBeads').textContent = '-';
+    return;
+  }
+  const cs = new Set();
+  for (let r = 0; r < state.gridHeight; r++)
+    for (let c = 0; c < state.gridWidth; c++)
+      cs.add(state.patternData[r][c]);
+  document.getElementById('statColors').textContent = cs.size;
+  document.getElementById('statBeads').textContent = state.gridWidth * state.gridHeight;
+}
+
+// ============ EXPORT ============
+function exportPNG() {
+  if (state.patternData.length === 0) { showToast('请先上传图片'); return; }
+  const SCALE = 2;
+  const cs = 20, w = state.gridWidth, h = state.gridHeight;
+  const margin = 60, titleH = 40;
+
+  // Compute legend layout first so we know total height
+  const usedColors = [...new Set(state.patternData.flat())].sort((a, b) => {
+    const ha = beadColors[a].hex, hb = beadColors[b].hex;
+    return (parseInt(ha.slice(1,3),16)+parseInt(ha.slice(3,5),16)+parseInt(ha.slice(5,7),16))
+         - (parseInt(hb.slice(1,3),16)+parseInt(hb.slice(3,5),16)+parseInt(hb.slice(5,7),16));
+  });
+  const gridW = w * cs;
+  const legendItemW = 72;
+  const legendCols = Math.max(3, Math.floor(gridW / legendItemW));
+  const legendRows = Math.ceil(usedColors.length / legendCols);
+  const legendH = 20 + legendRows * 25;
+
+  const tw = (gridW + margin * 2) * SCALE;
+  const th = (h * cs + margin * 2 + titleH + legendH) * SCALE;
+
+  const ec = document.createElement('canvas');
+  ec.width = tw; ec.height = th;
+  const ex = ec.getContext('2d');
+  ex.scale(SCALE, SCALE);
+  ex.fillStyle = '#fff'; ex.fillRect(0, 0, tw / SCALE, th / SCALE);
+
+  // Title
+  ex.fillStyle = '#2d2a26';
+  ex.font = 'bold 15px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ex.textAlign = 'center';
+  ex.fillText(`拼豆图纸 ${w}×${h}`, (tw / SCALE) / 2, margin - 30);
+  ex.font = '10px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ex.fillStyle = '#6b6560';
+  ex.fillText(`${new Date().toLocaleDateString('zh-CN')} | ${document.getElementById('brandSelect').value.toUpperCase()}`, (tw / SCALE) / 2, margin - 14);
+
+  // Reference image (small thumbnail in top-right)
+  const refImg = state.croppedImage || state.originalImage;
+  if (refImg) {
+    const refMaxW = 100, refMaxH = 70;
+    const refScale = Math.min(refMaxW / refImg.width, refMaxH / refImg.height);
+    const refW = refImg.width * refScale, refH = refImg.height * refScale;
+    const refX = margin + gridW - refW, refY = margin + titleH - refH - 8;
+    ex.fillStyle = '#f0ece6';
+    ex.fillRect(refX - 2, refY - 2, refW + 4, refH + 4);
+    ex.drawImage(refImg, refX, refY, refW, refH);
+    ex.strokeStyle = '#d5d0cb'; ex.lineWidth = 1;
+    ex.strokeRect(refX - 2, refY - 2, refW + 4, refH + 4);
+    ex.fillStyle = '#6b6560'; ex.font = '7px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ex.textAlign = 'right';
+    ex.fillText('原图', refX + refW, refY - 4);
+  }
+
+  // Grid background
+  ex.fillStyle = '#f0ece6';
+  ex.fillRect(margin, margin + titleH, gridW, h * cs);
+
+  // Row/col numbers
+  ex.fillStyle = '#6b6560'; ex.font = 'bold 7px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ex.textAlign = 'center';
+  for (let c = 0; c < w; c++) ex.fillText(c + 1, margin + c * cs + cs / 2, margin + titleH - 5);
+  ex.textAlign = 'right';
+  for (let r = 0; r < h; r++) ex.fillText(r + 1, margin - 6, margin + titleH + r * cs + cs / 2 + 3);
+
+  // Render based on export style
+  const labelFontSize = Math.max(4.5, Math.min(6.5, cs * 0.32));
+  for (let r = 0; r < h; r++) {
+    for (let c = 0; c < w; c++) {
+      const x = margin + c * cs, y = margin + titleH + r * cs;
+      const cx = x + cs / 2, cy = y + cs / 2;
+      const ci = state.patternData[r][c];
+      const hex = beadColors[ci].hex;
+      const code = beadColors[ci].code;
+      // Compute text color
+      const lr = parseInt(hex.slice(1,3),16);
+      const lg = parseInt(hex.slice(3,5),16);
+      const lb = parseInt(hex.slice(5,7),16);
+      const lum = 0.299*lr + 0.587*lg + 0.114*lb;
+      const textColor = lum < 135 ? '#ffffff' : '#2d2a26';
+
+      if (state.exportStyle === 'pixel') {
+        // Flat pixel square
+        ex.fillStyle = hex;
+        ex.fillRect(x, y, cs, cs);
+        // Subtle grid line
+        ex.strokeStyle = 'rgba(0,0,0,0.10)';
+        ex.lineWidth = 0.3;
+        ex.strokeRect(x, y, cs, cs);
+        // Code label
+        if (code && labelFontSize >= 4.5) {
+          ex.fillStyle = textColor;
+          ex.font = `bold ${labelFontSize}px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`;
+          ex.textAlign = 'center';
+          ex.textBaseline = 'middle';
+          ex.fillText(code, cx, cy);
+          ex.textBaseline = 'alphabetic';
+        }
+      } else {
+        // 3D bead circle
+        const gap = 1.5, radius = (cs - gap * 2) / 2;
+        ex.fillStyle = 'rgba(0,0,0,0.08)';
+        ex.beginPath(); ex.arc(cx + 1, cy + 1, radius, 0, Math.PI * 2); ex.fill();
+        const grad = ex.createRadialGradient(cx - radius*0.3, cy - radius*0.3, radius*0.05, cx, cy, radius);
+        grad.addColorStop(0, lighten(hex, 40)); grad.addColorStop(0.5, hex); grad.addColorStop(1, darken(hex, 20));
+        ex.fillStyle = grad;
+        ex.beginPath(); ex.arc(cx, cy, radius, 0, Math.PI * 2); ex.fill();
+        if (code && labelFontSize >= 4.5) {
+          ex.fillStyle = textColor;
+          ex.font = `bold ${labelFontSize}px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`;
+          ex.textAlign = 'center';
+          ex.textBaseline = 'middle';
+          ex.fillText(code, cx, cy);
+          ex.textBaseline = 'alphabetic';
+        }
+      }
+    }
+  }
+
+  // 10x10 dashed grid
+  drawTenGrid(ex, margin, margin + titleH, w, h, cs, 'rgba(0,0,0,0.40)');
+
+  // Legend — reference style: swatch grid with codes above, name below
+  const ly = margin + titleH + h * cs + 22;
+  ex.fillStyle = '#2d2a26'; ex.font = 'bold 11px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ex.textAlign = 'left';
+  ex.fillText(`颜色图例 (${usedColors.length}色)`, margin, ly);
+  usedColors.forEach((ci, i) => {
+    const col = i % legendCols, row = Math.floor(i / legendCols);
+    const rx = margin + col * legendItemW, ry = ly + 10 + row * 25;
+    const hex = beadColors[ci].hex;
+    // Swatch
+    ex.fillStyle = hex; ex.beginPath(); ex.roundRect(rx, ry, 10, 10, 2); ex.fill();
+    ex.strokeStyle = '#b5b0ab'; ex.lineWidth = 0.4; ex.stroke();
+    // Code + name on same line
+    ex.fillStyle = '#2d2a26'; ex.font = 'bold 7px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ex.textAlign = 'left';
+    ex.fillText(beadColors[ci].code, rx + 14, ry + 6);
+    ex.fillStyle = '#555'; ex.font = '6.5px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ex.fillText(beadColors[ci].name, rx + 14, ry + 14);
+  });
+
+  ec.toBlob(b => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = `拼豆图纸_${w}x${h}.png`; a.click();
+    showToast('PNG 图纸已导出');
+  });
+}
+
+function exportSVG() {
+  if (state.patternData.length === 0) { showToast('请先上传图片'); return; }
+  const cs = 20, w = state.gridWidth, h = state.gridHeight;
+  const gap = 1.5, radius = (cs - gap * 2) / 2;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w*cs}" height="${h*cs}" viewBox="0 0 ${w*cs} ${h*cs}">`;
+  svg += `<rect width="${w*cs}" height="${h*cs}" fill="#f0ece6"/>`;
+  svg += `<defs>`;
+  for (let i = 0; i < beadColors.length; i++) {
+    const hex = beadColors[i].hex;
+    svg += `<radialGradient id="g${i}" cx="35%" cy="30%"><stop offset="0%" stop-color="${lighten(hex,40)}"/><stop offset="50%" stop-color="${hex}"/><stop offset="100%" stop-color="${darken(hex,20)}"/></radialGradient>`;
+  }
+  svg += `</defs>`;
+  for (let r = 0; r < h; r++) {
+    for (let c = 0; c < w; c++) {
+      const cx = c * cs + cs / 2, cy = r * cs + cs / 2;
+      const ci = state.patternData[r][c];
+      svg += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="url(#g${ci})" stroke="rgba(0,0,0,0.07)" stroke-width="0.5"/>`;
+    }
+  }
+  svg += `</svg>`;
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `拼豆图纸_${w}x${h}.svg`; a.click();
+  showToast('SVG 图纸已导出');
+}
+
+function exportJSON() {
+  if (state.patternData.length === 0) { showToast('请先上传图片'); return; }
+  const data = {
+    meta: { width: state.gridWidth, height: state.gridHeight, brand: document.getElementById('brandSelect').value, date: new Date().toISOString() },
+    palette: beadColors.map(c => ({ name: c.name, hex: c.hex, code: c.code })),
+    pattern: state.patternData,
+    usedColors: [...new Set(state.patternData.flat())],
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `拼豆数据_${state.gridWidth}x${state.gridHeight}.json`; a.click();
+  showToast('JSON 数据已导出');
+}
+
+function exportCopyText() {
+  if (state.patternData.length === 0) { showToast('请先上传图片'); return; }
+  let text = `拼豆图纸 (${state.gridWidth}×${state.gridHeight}) [${document.getElementById('brandSelect').value.toUpperCase()}]\n`;
+  text += `日期: ${new Date().toLocaleDateString('zh-CN')}\n\n【颜色清单】\n`;
+  const usedColors = [...new Set(state.patternData.flat())];
+  for (const ci of usedColors.sort()) {
+    const c = beadColors[ci];
+    text += `  ${c.name.padEnd(8)} ${c.code}\n`;
+  }
+  text += `\n【逐行图纸】\n`;
+  for (let r = 0; r < state.gridHeight; r++) {
+    text += `R${(r+1).toString().padStart(3)}: ${state.patternData[r].map(ci => beadColors[ci].code.padStart(3)).join(' ')}\n`;
+  }
+  navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
+}
+
+// ============ UTILS ============
+function lighten(hex, pct) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const f = pct / 100;
+  return `rgb(${Math.min(255,Math.round(r+(255-r)*f))},${Math.min(255,Math.round(g+(255-g)*f))},${Math.min(255,Math.round(b+(255-b)*f))})`;
+}
+function darken(hex, pct) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const f = pct / 100;
+  return `rgb(${Math.max(0,Math.round(r*(1-f)))},${Math.max(0,Math.round(g*(1-f)))},${Math.max(0,Math.round(b*(1-f)))})`;
+}
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h, s, l = (max+min)/2;
+  if (max === min) { h = s = 0; }
+  else {
+    const d = max - min;
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    switch (max) {
+      case r: h = ((g-b)/d + (g<b?6:0))/6; break;
+      case g: h = ((b-r)/d + 2)/6; break;
+      case b: h = ((r-g)/d + 4)/6; break;
+    }
+  }
+  return { h, s, l };
+}
+function hslToRgb(h, s, l) {
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const hue2rgb = (p, q, t) => { if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+    const q = l < 0.5 ? l*(1+s) : l+s-l*s, p = 2*l - q;
+    r = hue2rgb(p,q,h+1/3); g = hue2rgb(p,q,h); b = hue2rgb(p,q,h-1/3);
+  }
+  return { r: Math.round(r*255), g: Math.round(g*255), b: Math.round(b*255) };
+}
+function showToast(msg) {
+  toast.textContent = msg; toast.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+function resetAll() {
+  state.originalImage = null; state.croppedImage = null; state.patternData = [];
+  state.history = []; state.historyIndex = -1;
+  state.gridWidth = 30; state.gridHeight = 30;
+  state.zoom = 1; state.isPixelMode = false;
+  state.brightness = 0; state.contrast = 0; state.saturation = 100; state.threshold = 0; state.sharpen = 0;
+  updateSliders();
+  document.getElementById('brightness').value = 0; document.getElementById('brightVal').textContent = '0';
+  document.getElementById('contrast').value = 0; document.getElementById('contrastVal').textContent = '0';
+  document.getElementById('saturation').value = 100; document.getElementById('satVal').textContent = '100%';
+  document.getElementById('threshold').value = 0; document.getElementById('thresholdVal').textContent = '0';
+  document.getElementById('sharpen').value = 0; document.getElementById('sharpenVal').textContent = '0';
+  document.getElementById('pixelMode').checked = false;
+  document.getElementById('previewMode').checked = false;
+  state.showPreview = false;
+  uploadZone.classList.remove('has-image');
+  uploadZone.querySelector('.upload-text').textContent = '点击或拖拽上传图片';
+  placeholder.style.display = '';
+  canvas.width = 0; canvas.height = 0;
+  canvas.style.width = ''; canvas.style.height = '';
+  zoomLabel.textContent = '100%';
+  updateStats(); fileInput.value = '';
+  setTool('brush');
+  colorGroupFilter = 'ALL';
+  renderColorFilter();
+  renderColorPalette();
+  document.getElementById('brandSelect').value = 'artkalFull';
+  beadColors = [...palettes.artkalFull];
+  const blackIdx = beadColors.findIndex(c => c.code === 'H7');
+  state.selectedColorIndex = blackIdx >= 0 ? blackIdx : 100;
+  updateColorBar();
+  showToast('已重置');
+}
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
+  try { localStorage.setItem('pdd-theme', isDark ? 'dark' : 'light'); } catch(e) {}
+}
+// Load saved theme
+(function() {
+  try { if (localStorage.getItem('pdd-theme') === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('themeToggle').textContent = '☀️'; } } catch(e) {}
+})();
+
+function previewExport() {
+  if (state.patternData.length === 0) { showToast('请先上传图片'); return; }
+  // Generate preview at 1x scale (not 2x)
+  const cs = 14, w = state.gridWidth, h = state.gridHeight;
+  const margin = 40, titleH = 30;
+  const gridW = w * cs;
+  const usedColors = [...new Set(state.patternData.flat())].sort((a, b) => {
+    const ha = beadColors[a].hex, hb = beadColors[b].hex;
+    return (parseInt(ha.slice(1,3),16)+parseInt(ha.slice(3,5),16)+parseInt(ha.slice(5,7),16))
+         - (parseInt(hb.slice(1,3),16)+parseInt(hb.slice(3,5),16)+parseInt(hb.slice(5,7),16));
+  });
+  const legendItemW = 65, legendCols = Math.max(3, Math.floor(gridW / legendItemW));
+  const legendRows = Math.ceil(usedColors.length / legendCols);
+  const legendH = 16 + legendRows * 20;
+  const tw = gridW + margin * 2, th = h * cs + margin * 2 + titleH + legendH;
+
+  const ec = document.createElement('canvas');
+  ec.width = tw; ec.height = th;
+  const ex = ec.getContext('2d');
+  ex.fillStyle = '#fff'; ex.fillRect(0, 0, tw, th);
+  ex.fillStyle = '#2d2a26';
+  ex.font = 'bold 12px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ex.textAlign = 'center';
+  ex.fillText(`拼豆图纸 ${w}×${h}`, tw / 2, margin - 20);
+  ex.font = '8px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ex.fillStyle = '#6b6560';
+  ex.fillText(`${document.getElementById('brandSelect').value.toUpperCase()} | ${state.exportStyle === 'pixel' ? '像素模式' : '拼豆模式'}`, tw / 2, margin - 8);
+
+  ex.fillStyle = '#f0ece6'; ex.fillRect(margin, margin + titleH, gridW, h * cs);
+
+  const labelFontSize = Math.max(4, Math.min(5.5, cs * 0.35));
+  for (let r = 0; r < h; r++) {
+    for (let c = 0; c < w; c++) {
+      const x = margin + c * cs, y = margin + titleH + r * cs;
+      const cx = x + cs / 2, cy = y + cs / 2;
+      const ci = state.patternData[r][c], hex = beadColors[ci].hex, code = beadColors[ci].code;
+      const lr = parseInt(hex.slice(1,3),16), lg = parseInt(hex.slice(3,5),16), lb = parseInt(hex.slice(5,7),16);
+      const lum = 0.299*lr + 0.587*lg + 0.114*lb;
+      const textColor = lum < 135 ? '#fff' : '#2d2a26';
+      if (state.exportStyle === 'pixel') {
+        ex.fillStyle = hex; ex.fillRect(x, y, cs, cs);
+        ex.strokeStyle = 'rgba(0,0,0,0.08)'; ex.lineWidth = 0.3; ex.strokeRect(x, y, cs, cs);
+        if (code && labelFontSize >= 4) {
+          ex.fillStyle = textColor;
+          ex.font = `bold ${labelFontSize}px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`;
+          ex.textAlign = 'center'; ex.textBaseline = 'middle';
+          ex.fillText(code, cx, cy); ex.textBaseline = 'alphabetic';
+        }
+      } else {
+        const gap = 1.2, radius = (cs - gap * 2) / 2;
+        ex.fillStyle = 'rgba(0,0,0,0.06)';
+        ex.beginPath(); ex.arc(cx + 0.8, cy + 0.8, radius, 0, Math.PI * 2); ex.fill();
+        const grad = ex.createRadialGradient(cx - radius*0.3, cy - radius*0.3, radius*0.05, cx, cy, radius);
+        grad.addColorStop(0, lighten(hex, 40)); grad.addColorStop(0.5, hex); grad.addColorStop(1, darken(hex, 20));
+        ex.fillStyle = grad;
+        ex.beginPath(); ex.arc(cx, cy, radius, 0, Math.PI * 2); ex.fill();
+        if (code && labelFontSize >= 4) {
+          ex.fillStyle = textColor;
+          ex.font = `bold ${labelFontSize}px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`;
+          ex.textAlign = 'center'; ex.textBaseline = 'middle';
+          ex.fillText(code, cx, cy); ex.textBaseline = 'alphabetic';
+        }
+      }
+    }
+  }
+  drawTenGrid(ex, margin, margin + titleH, w, h, cs, 'rgba(0,0,0,0.30)');
+
+  // Legend
+  const ly = margin + titleH + h * cs + 14;
+  ex.fillStyle = '#2d2a26'; ex.font = 'bold 9px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+  ex.textAlign = 'left';
+  ex.fillText(`颜色图例 (${usedColors.length}色)`, margin, ly);
+  usedColors.forEach((ci, i) => {
+    const col = i % legendCols, row = Math.floor(i / legendCols);
+    const rx = margin + col * legendItemW, ry = ly + 8 + row * 20;
+    ex.fillStyle = beadColors[ci].hex; ex.beginPath(); ex.roundRect(rx, ry, 8, 8, 2); ex.fill();
+    ex.strokeStyle = '#b5b0ab'; ex.lineWidth = 0.3; ex.stroke();
+    ex.fillStyle = '#2d2a26'; ex.font = 'bold 6px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ex.fillText(beadColors[ci].code, rx + 11, ry + 5);
+    ex.fillStyle = '#555'; ex.font = '5.5px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ex.fillText(beadColors[ci].name, rx + 11, ry + 12);
+  });
+
+  // Show in modal — fit to screen
+  const maxW = window.innerWidth * 0.88, maxH = window.innerHeight * 0.82;
+  const scale = Math.min(1, maxW / tw, maxH / th);
+  const displayW = Math.round(tw * scale), displayH = Math.round(th * scale);
+
+  modalContainer.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)modalContainer.innerHTML=''">
+      <div class="modal-content" style="max-width:${displayW+40}px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong style="font-size:14px">导出预览</strong>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-primary btn-sm" onclick="exportPNG();modalContainer.innerHTML=''">📥 确认导出</button>
+            <button class="btn btn-outline btn-sm" onclick="modalContainer.innerHTML=''">关闭</button>
+          </div>
+        </div>
+        <p style="font-size:10px;color:var(--text-secondary)">${w}×${h} | ${state.exportStyle==='pixel'?'像素模式':'拼豆模式'} | ${usedColors.length}色</p>
+        <img src="${ec.toDataURL()}" style="width:${displayW}px;height:${displayH}px;border:1px solid var(--border);border-radius:4px" alt="导出预览">
+      </div>
+    </div>
+  `;
+}
+
+function toggleAbout() {
+  showToast('快捷键: B=画笔 E=橡皮 G=填充 I=吸色 Ctrl+Z=撤销 Ctrl+Y=重做 | 右键/吸色管=吸取颜色');
+}
+
+let resizeDebounce;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeDebounce);
+  resizeDebounce = setTimeout(() => { updateCanvasSize(); if (state.patternData.length > 0) zoomFit(); }, 200);
+});
+</script>
+</body>
+</html>
