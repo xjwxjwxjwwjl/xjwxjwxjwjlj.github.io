@@ -147,6 +147,11 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 50%; background: var(--accent); cursor: pointer;
   border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
 }
+input[type="range"]::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+  border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
 
 select {
   width: 100%; padding: 7px 10px; border-radius: 6px;
@@ -315,6 +320,23 @@ select {
   .upload-text { font-size: 11px; }
   .toast { bottom: 150px; }
   .zoom-bar { bottom: 145px; right: 8px; }
+
+  /* Larger touch targets for sliders — prevent accidental drags while scrolling */
+  .control-group { margin-bottom: 14px; }
+  .control-label { font-size: 13px; margin-bottom: 6px; }
+  input[type="range"] {
+    height: 10px;
+    border-radius: 5px;
+    touch-action: manipulation;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    width: 32px; height: 32px;
+    border-width: 4px;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 32px; height: 32px;
+    border-width: 4px;
+  }
 }
 </style>
 </head>
